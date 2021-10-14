@@ -1,0 +1,89 @@
+import * as React from 'react';
+import { Text, View, StyleSheet, Button, Alert } from 'react-native';
+import AppScreen from './components/AppScreen'
+import * as SecureStore from 'expo-secure-store';
+import * as Facebook from 'expo-facebook'
+
+
+const tokenKeyName = 'token'
+
+export default class App extends React.Component {
+  constructor(){
+    super()  
+    this.state = {
+      token: null,
+      loading: true
+    }
+  }
+
+  componentWillMount(){
+    this.checkForToken()
+  }
+
+  async saveTokenToSecureStorage(_token){
+    await SecureStore.setItemAsync(tokenKeyName, _token)
+    this.setState({
+      token: _token,
+      loading: False
+    })
+  }
+
+  async checkForToken(){
+    let _token = await SecureStore.getItemAsync(tokenKeyName)
+    this.setState(
+      {
+        token: _token,
+        loading: false,
+      }
+    )
+  }
+
+  render() {
+    if(this.state.loading===true){
+      return(
+        <View style = {styles.container}>
+          <Text>Loading</Text>
+        </View>
+      )
+    }
+    if(this.state.token===null){
+      return (
+        <View styles={styles.container}>
+          <Button title="Login with Facebook" onPress={()=>{this.logIn()}}/>
+        </View>
+      );
+    }
+      else{
+        return <AppScreen/>
+      }
+  }
+
+
+  async logIn(){
+      try{
+        await Facebook.initializeAsync('3122019704736912')
+        const {type, token}=Facebook.logInWithReadPermissionsAsync({
+          permissions: ['public_profile']
+        })
+        if(type==='success'){
+          const response = await fetch('https://graph.facebook.com/me?access_token={$token}'+ token)}
+          this.saveTokenToSecureStorage(token)
+          const object = await response.json()
+          Alert.alert('Hey' + object.name)
+
+      }catch({message}){
+        console.log(message)
+      }
+  }
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'black',
+    padding: 8,
+  }
+});
